@@ -25,8 +25,9 @@ jobs:
       fail-fast: false # don't fail as that can skip required cleanup steps for jobs
       matrix:
         include:
-          - test: smoke
-          - test: cli_ui
+          - filter: 'integration test:smoke'
+          - filter: 'integration test:cli_ui'
+          - filter: 'e2e_target'
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.SERVICE_USER_GITHUB_TOKEN }}
@@ -37,6 +38,9 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: ${{ inputs.go-version }}
+      - name: Log Go version
+        run: |
+          echo "${{ inputs.go-version }}"
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -44,14 +48,12 @@ jobs:
           # it changes the output to text when we expect it to be JSON.
           terraform_wrapper: false
       - name: Import GPG key for Boundary pass keystore
-        if: matrix.test == 'cli_ui'
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v5
         with:
           gpg_private_key: ${{ secrets.ENOS_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.ENOS_GPG_PASSPHRASE }}
       - name: Trust the pass keystore GPG key
-        if: matrix.test == 'cli_ui'
         id: trust_gpg
         run: |
           gpg -a --encrypt -r ${{ secrets.ENOS_GPG_UID }} --trust-model always
@@ -75,35 +77,33 @@ jobs:
           mkdir -p ./enos/support
           echo "${{ secrets.ENOS_CI_SSH_KEY }}" > ./enos/support/private_key.pem
           chmod 600 ./enos/support/private_key.pem
-      - name: Set up Bats CLI UI tests dependency cache
-        if: matrix.test == 'cli_ui'
+      - name: Set up dependency cache
         id: dep-cache
         uses: actions/cache@v3
         with:
           path: /tmp/bats-cli-ui-deps
           key: enos-bats-cli-ui-deps-jq-1.6-password-store-1.7.4
       - name: Set up Node for Bats install
-        if: matrix.test == 'cli_ui'
+        if: matrix.filter == 'integration test:cli_ui'
         uses: actions/setup-node@v3
         with:
           node-version: 16
       - name: Install Bats via NPM
-        if: matrix.test == 'cli_ui'
         # Use npm so this workflow is portable on multiple runner distros
         run: npm install --location=global bats
       - name: Download jq for Bats CLI UI tests
-        if: matrix.test == 'cli_ui' && steps.dep-cache.outputs.cache-hit != 'true'
+        if: matrix.filter == 'integration test:cli_ui' && steps.dep-cache.outputs.cache-hit != 'true'
         # NOTE: if you update the jq version make sure to update the dep cache key
         run: |
           mkdir -p /tmp/bats-cli-ui-deps
           wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -O /tmp/bats-cli-ui-deps/jq-bin
       - name: Install jq for Bats CLI UI tests
-        if: matrix.test == 'cli_ui'
+        if: matrix.filter == 'integration test:cli_ui' && steps.dep-cache.outputs.cache-hit != 'true'
         run: |
           chmod +x /tmp/bats-cli-ui-deps/jq-bin
           sudo cp /tmp/bats-cli-ui-deps/jq-bin /usr/local/bin/jq
       - name: Download and unzip pass for Boundary keyring
-        if: matrix.test == 'cli_ui' && steps.dep-cache.outputs.cache-hit != 'true'
+        if: steps.dep-cache.outputs.cache-hit != 'true'
         # NOTE: if you update the password store version make sure to update the dep cache key
         run: |
           mkdir -p /tmp/bats-cli-ui-deps/pass
@@ -111,7 +111,6 @@ jobs:
           cd /tmp/bats-cli-ui-deps/pass
           tar -xvf pass.tar.xz
       - name: Install pass for Boundary keyring
-        if: matrix.test == 'cli_ui'
         run: |
           cd /tmp/bats-cli-ui-deps/pass/password-store-1.7.4
           sudo make install
@@ -142,7 +141,7 @@ jobs:
         run: |
           mkdir -p ./enos/terraform-plugin-cache
           export ENOS_VAR_enos_user=$GITHUB_ACTOR && \
-          enos scenario run --timeout 60m0s --chdir ./enos integration test:${{ matrix.test}} builder:crt
+          enos scenario run --timeout 60m0s --chdir ./enos ${{ matrix.filter}} builder:crt
       - name: Retry Enos scenario
         id: run_retry
         if: steps.run.outcome == 'failure'
@@ -157,9 +156,9 @@ jobs:
           ENOS_VAR_skip_failing_bats_tests: "true"
         run: |
           export ENOS_VAR_enos_user=$GITHUB_ACTOR && \
-          enos scenario run --timeout 60m0s --chdir ./enos integration test:${{ matrix.test}} builder:crt
+          enos scenario run --timeout 60m0s --chdir ./enos ${{ matrix.filter}} builder:crt
       - name: Destroy Enos scenario
-        if: ${{ always() }}
+        if: ${{ failure() && steps.run.conclusion == 'failure' || failure() && steps.run_retry.conclusion == 'failure' }}
         env:
           ENOS_VAR_aws_region: us-east-1
           ENOS_VAR_aws_ssh_keypair_name: enos-ci-ssh-key
@@ -171,7 +170,7 @@ jobs:
           ENOS_VAR_skip_failing_bats_tests: "true"
         run: |
           export ENOS_VAR_enos_user=$GITHUB_ACTOR && \
-          enos scenario destroy --timeout 60m0s --chdir ./enos integration test:${{ matrix.test}} builder:crt
+          enos scenario destroy --timeout 60m0s --chdir ./enos ${{ matrix.filter}} builder:crt
       - name: Output debug information on failure
         if: ${{ failure() }}
         run: |
