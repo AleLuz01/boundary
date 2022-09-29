@@ -141,7 +141,7 @@ jobs:
         run: |
           mkdir -p ./enos/terraform-plugin-cache
           export ENOS_VAR_enos_user=$GITHUB_ACTOR && \
-          enos scenario run --timeout 60m0s --chdir ./enos ${{ matrix.filter}} builder:crt
+          enos scenario run --timeout 60m0s --chdir ./enos ${{ matrix.filter }} builder:crt
       - name: Retry Enos scenario
         id: run_retry
         if: steps.run.outcome == 'failure'
