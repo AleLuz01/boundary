@@ -79,7 +79,6 @@ variable "target_count" {
 variable "local_boundary_dir" {
   description = "Path to local boundary executable"
   type        = string
-  default     = "/tmp"
 }
 
 variable "crt_bundle_path" {
