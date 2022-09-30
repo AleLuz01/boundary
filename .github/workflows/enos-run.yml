@@ -155,7 +155,6 @@ jobs:
           export ENOS_VAR_enos_user=$GITHUB_ACTOR && \
           enos scenario run --timeout 60m0s --chdir ./enos ${{ matrix.filter }} builder:crt
       - name: Destroy Enos scenario
-        if: ${{ failure() && steps.run.conclusion == 'failure' || failure() && steps.run_retry.conclusion == 'failure' }}
         env:
           ENOS_VAR_aws_region: us-east-1
           ENOS_VAR_aws_ssh_keypair_name: enos-ci-ssh-key
