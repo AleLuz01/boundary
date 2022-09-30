@@ -89,13 +89,13 @@ jobs:
         # Use npm so this workflow is portable on multiple runner distros
         run: npm install --location=global bats
       - name: Download jq for Bats CLI UI tests
-        if: matrix.filter == 'integration test:cli_ui' && steps.dep-cache.outputs.cache-hit != 'true'
+        if: steps.dep-cache.outputs.cache-hit != 'true'
         # NOTE: if you update the jq version make sure to update the dep cache key
         run: |
           mkdir -p /tmp/bats-cli-ui-deps
           wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -O /tmp/bats-cli-ui-deps/jq-bin
       - name: Install jq for Bats CLI UI tests
-        if: matrix.filter == 'integration test:cli_ui' && steps.dep-cache.outputs.cache-hit != 'true'
+        if: steps.dep-cache.outputs.cache-hit != 'true'
         run: |
           chmod +x /tmp/bats-cli-ui-deps/jq-bin
           sudo cp /tmp/bats-cli-ui-deps/jq-bin /usr/local/bin/jq
