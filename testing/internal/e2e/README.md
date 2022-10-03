@@ -13,6 +13,9 @@ Setup Enos as described [here](../../../enos/README.md)
 
 Then, use the following commands to run tests
 ```shell
+cd enos
+enos scenario list
+
 # `Run` executes the tests and destroys the associated infrastructure in one command
 enos scenario run e2e_{scenario} builder:local
 
@@ -63,3 +66,7 @@ go test ./target/ // run target tests if running from this directory
 go test github.com/hashicorp/boundary/testing/e2e/target -v // verbose
 go test github.com/hashicorp/boundary/testing/e2e/target -v -run '^TestCreateTargetApi$' // run a specific test
 ```
+
+## Adding Tests
+
+Enos is comprised of scenarios, where a scenario is. In one scenario, there may be a boundary cluster and a target. Another scenario might involve a boundary cluster and a vault instance.
