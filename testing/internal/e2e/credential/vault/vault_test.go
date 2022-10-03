@@ -400,6 +400,8 @@ func TestCreateVaultCredentialStoreApi(t *testing.T) {
 
 	k, err := os.ReadFile(c.TargetSshKeyPath)
 	require.NoError(t, err)
-	require.Equal(t, string(k), retrievedKey)
+
+	keysMatch := string(k) == retrievedKey // This is done to prevent printing out key info
+	require.True(t, keysMatch, "Key contents retrieved from vault does not match expected value")
 	t.Log("Successfully retrieved credentials for target")
 }
