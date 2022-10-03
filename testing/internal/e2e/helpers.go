@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-	"time"
 )
 
 // Option is a func that sets optional attributes for a call. This does not need
@@ -133,24 +132,6 @@ func WithPipe(command ...string) Option {
 	return func(o *options) {
 		o.withPipe = command
 	}
-}
-
-// Retry performs the provided function multiple times until it is executed without
-// an error.
-// Returns an error if the command still returns an error after all attempts have been
-// used.
-func Retry(t testing.TB, attempts int, sleep time.Duration, f func() error) (err error) {
-	for i := 0; i < attempts; i++ {
-		if i > 0 {
-			t.Logf("Retrying command after error: %s", err)
-			time.Sleep(sleep)
-		}
-		err = f()
-		if err == nil {
-			return nil
-		}
-	}
-	return fmt.Errorf("After %d attempt(s), last error: %s", attempts, err)
 }
 
 // MaybeSkipTest is a check used at the start of the test to determine if the test should run

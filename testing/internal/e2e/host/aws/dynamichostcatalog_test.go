@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/boundary/api/hostcatalogs"
 	"github.com/hashicorp/boundary/api/hosts"
 	"github.com/hashicorp/boundary/api/hostsets"
@@ -124,16 +125,20 @@ func TestCreateAwsDynamicHostCatalogCli(t *testing.T) {
 	// Retry is needed here since it can take a few tries before hosts start appearing
 	t.Logf("Looking for items in the host set...")
 	var actualHostSetCount1 int
-	err = e2e.Retry(t, 5, 3*time.Second, func() error {
+	err = backoff.RetryNotify(func() error {
 		output = e2e.RunCommand("boundary", e2e.WithArgs("host-sets", "read",
 			"-id", newHostSetId1,
 			"-format", "json",
 		))
-		require.NoError(t, output.Err, string(output.Stderr))
+		if output.Err != nil {
+			return backoff.Permanent(errors.New(string(output.Stderr)))
+		}
 
 		var hostSetsReadResult hostsets.HostSetReadResult
 		err = json.Unmarshal(output.Stdout, &hostSetsReadResult)
-		require.NoError(t, err)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
 
 		actualHostSetCount1 = len(hostSetsReadResult.Item.HostIds)
 		if actualHostSetCount1 == 0 {
@@ -143,6 +148,8 @@ func TestCreateAwsDynamicHostCatalogCli(t *testing.T) {
 		}
 
 		return nil
+	}, backoff.WithMaxRetries(backoff.NewConstantBackOff(3*time.Second), 5), func(err error, td time.Duration) {
+		t.Logf("%s. Retrying...", err.Error())
 	})
 	require.NoError(t, err)
 	expectedHostSetCount1, err := strconv.Atoi(c.AwsHostSetCount1)
@@ -166,16 +173,20 @@ func TestCreateAwsDynamicHostCatalogCli(t *testing.T) {
 	// Get list of hosts in the second host set
 	t.Logf("Looking for items in the second host set...")
 	var actualHostSetCount2 int
-	err = e2e.Retry(t, 5, 3*time.Second, func() error {
+	err = backoff.RetryNotify(func() error {
 		output = e2e.RunCommand("boundary", e2e.WithArgs("host-sets", "read",
 			"-id", newHostSetId2,
 			"-format", "json",
 		))
-		require.NoError(t, output.Err, string(output.Stderr))
+		if output.Err != nil {
+			return backoff.Permanent(errors.New(string(output.Stderr)))
+		}
 
 		var hostSetsReadResult hostsets.HostSetReadResult
 		err = json.Unmarshal(output.Stdout, &hostSetsReadResult)
-		require.NoError(t, err)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
 
 		actualHostSetCount2 = len(hostSetsReadResult.Item.HostIds)
 		if actualHostSetCount2 == 0 {
@@ -185,6 +196,8 @@ func TestCreateAwsDynamicHostCatalogCli(t *testing.T) {
 		}
 
 		return nil
+	}, backoff.WithMaxRetries(backoff.NewConstantBackOff(3*time.Second), 5), func(err error, td time.Duration) {
+		t.Logf("%s. Retrying...", err.Error())
 	})
 	require.NoError(t, err)
 	expectedHostSetCount2, err := strconv.Atoi(c.AwsHostSetCount2)
@@ -195,16 +208,20 @@ func TestCreateAwsDynamicHostCatalogCli(t *testing.T) {
 	// Retry is needed here since it can take a few tries before hosts start appearing
 	t.Logf("Looking for items in the host catalog...")
 	var actualHostCatalogCount int
-	err = e2e.Retry(t, 5, 3*time.Second, func() error {
+	err = backoff.RetryNotify(func() error {
 		output = e2e.RunCommand("boundary", e2e.WithArgs("hosts", "list",
 			"-host-catalog-id", newHostCatalogId,
 			"-format", "json",
 		))
-		require.NoError(t, output.Err, string(output.Stderr))
+		if output.Err != nil {
+			return backoff.Permanent(errors.New(string(output.Stderr)))
+		}
 
 		var hostCatalogListResult hostcatalogs.HostCatalogListResult
 		err = json.Unmarshal(output.Stdout, &hostCatalogListResult)
-		require.NoError(t, err)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
 
 		actualHostCatalogCount = len(hostCatalogListResult.Items)
 		if actualHostCatalogCount == 0 {
@@ -214,6 +231,8 @@ func TestCreateAwsDynamicHostCatalogCli(t *testing.T) {
 		}
 
 		return nil
+	}, backoff.WithMaxRetries(backoff.NewConstantBackOff(3*time.Second), 5), func(err error, td time.Duration) {
+		t.Logf("%s. Retrying...", err.Error())
 	})
 	require.NoError(t, err)
 	expectedHostCatalogCount := expectedHostSetCount1 + expectedHostSetCount2
@@ -311,9 +330,11 @@ func TestCreateAwsDynamicHostCatalogApi(t *testing.T) {
 	// Retry is needed here since it can take a few tries before hosts start appearing
 	t.Logf("Looking for items in the host set...")
 	var actualHostSetCount int
-	err = e2e.Retry(t, 10, 3*time.Second, func() error {
+	err = backoff.RetryNotify(func() error {
 		hostSetReadResult, err := hsClient.Read(ctx, newHostSetId)
-		require.NoError(t, err)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
 
 		actualHostSetCount = len(hostSetReadResult.Item.HostIds)
 		if actualHostSetCount == 0 {
@@ -323,6 +344,8 @@ func TestCreateAwsDynamicHostCatalogApi(t *testing.T) {
 		}
 
 		return nil
+	}, backoff.WithMaxRetries(backoff.NewConstantBackOff(3*time.Second), 5), func(err error, td time.Duration) {
+		t.Logf("%s. Retrying...", err.Error())
 	})
 	require.NoError(t, err)
 	t.Log("Successfully found items in the host set")
@@ -335,9 +358,11 @@ func TestCreateAwsDynamicHostCatalogApi(t *testing.T) {
 	t.Logf("Looking for items in the host catalog...")
 	var actualHostCatalogCount int
 	hClient := hosts.NewClient(client)
-	err = e2e.Retry(t, 10, 3*time.Second, func() error {
+	err = backoff.RetryNotify(func() error {
 		hostListResult, err := hClient.List(ctx, newHostCatalogId)
-		require.NoError(t, err)
+		if err != nil {
+			return backoff.Permanent(err)
+		}
 
 		actualHostCatalogCount = len(hostListResult.Items)
 		if actualHostCatalogCount == 0 {
@@ -347,6 +372,8 @@ func TestCreateAwsDynamicHostCatalogApi(t *testing.T) {
 		}
 
 		return nil
+	}, backoff.WithMaxRetries(backoff.NewConstantBackOff(3*time.Second), 5), func(err error, td time.Duration) {
+		t.Logf("%s. Retrying...", err.Error())
 	})
 	require.NoError(t, err)
 	t.Log("Successfully found items in the host catalog")
