@@ -25,18 +25,19 @@ func CreateNewOrgApi(t testing.TB, ctx context.Context, client *api.Client) stri
 	return newOrgResult.Item.Id
 }
 
-// CreateNewProjectApi creates a new project in boundary using the go api.
+// CreateNewProjectApi creates a new project in boundary using the go api. The project will be created
+// under the provided org id.
 // Returns the id of the new project.
-func CreateNewProjectApi(t testing.TB, ctx context.Context, client *api.Client, scopeId string) string {
+func CreateNewProjectApi(t testing.TB, ctx context.Context, client *api.Client, orgId string) string {
 	scopeClient := scopes.NewClient(client)
-	newOrgResult, err := scopeClient.Create(ctx, scopeId, scopes.WithName("e2e Automated Test Project"))
+	newProjResult, err := scopeClient.Create(ctx, orgId, scopes.WithName("e2e Automated Test Project"))
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, err := scopeClient.Delete(ctx, newOrgResult.Item.Id)
+		_, err := scopeClient.Delete(ctx, newProjResult.Item.Id)
 		require.NoError(t, err)
 	})
 
-	return newOrgResult.Item.Id
+	return newProjResult.Item.Id
 }
 
 // CreateNewOrgCli creates a new organization in boundary using the cli.
@@ -61,24 +62,25 @@ func CreateNewOrgCli(t testing.TB) string {
 	return newOrgResult.Item.Id
 }
 
-// CreateNewProjectCli creates a new project in boundary using the cli.
+// CreateNewProjectCli creates a new project in boundary using the cli. The project will be created
+// under the provided org id.
 // Returns the id of the new project.
-func CreateNewProjectCli(t testing.TB, scopeId string) string {
+func CreateNewProjectCli(t testing.TB, orgId string) string {
 	output := e2e.RunCommand("boundary", e2e.WithArgs("scopes", "create",
 		"-name", "e2e Automated Test Project",
-		"-scope-id", scopeId,
+		"-scope-id", orgId,
 		"-format", "json",
 	))
 	require.NoError(t, output.Err, string(output.Stderr))
 
-	var newOrgResult scopes.ScopeCreateResult
-	err := json.Unmarshal(output.Stdout, &newOrgResult)
+	var newProjResult scopes.ScopeCreateResult
+	err := json.Unmarshal(output.Stdout, &newProjResult)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		output := e2e.RunCommand("boundary", e2e.WithArgs("scopes", "delete", "-id", newOrgResult.Item.Id))
+		output := e2e.RunCommand("boundary", e2e.WithArgs("scopes", "delete", "-id", newProjResult.Item.Id))
 		require.NoError(t, output.Err, string(output.Stderr))
 	})
 
-	return newOrgResult.Item.Id
+	return newProjResult.Item.Id
 }

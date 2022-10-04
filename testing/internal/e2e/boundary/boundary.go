@@ -45,6 +45,11 @@ func loadConfig() (*config, error) {
 		return nil, err
 	}
 
+	err = c.validate()
+	if err != nil {
+		return nil, err
+	}
+
 	return &c, err
 }
 
@@ -52,10 +57,6 @@ func loadConfig() (*config, error) {
 // attempts to authenticate it. Returns the client.
 func NewApiClient() (*api.Client, error) {
 	c, err := loadConfig()
-	if err != nil {
-		return nil, err
-	}
-	err = c.validate()
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +85,6 @@ func NewApiClient() (*api.Client, error) {
 // AuthenticateCli uses the cli to authenticate the specified Boundary instance.
 func AuthenticateCli(t testing.TB) {
 	c, err := loadConfig()
-	require.NoError(t, err)
-	err = c.validate()
 	require.NoError(t, err)
 
 	output := e2e.RunCommand("boundary", e2e.WithArgs("authenticate", "password",

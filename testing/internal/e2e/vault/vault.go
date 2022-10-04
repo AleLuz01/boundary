@@ -37,6 +37,11 @@ func loadConfig() (*config, error) {
 		return nil, err
 	}
 
+	err = c.validate()
+	if err != nil {
+		return nil, err
+	}
+
 	return &c, err
 }
 
@@ -44,8 +49,6 @@ func loadConfig() (*config, error) {
 // policy to vault. Returns the vault address.
 func Setup(t testing.TB) (string, string) {
 	c, err := loadConfig()
-	require.NoError(t, err)
-	err = c.validate()
 	require.NoError(t, err)
 
 	_, filename, _, ok := runtime.Caller(0)

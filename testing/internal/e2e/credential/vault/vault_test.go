@@ -56,6 +56,11 @@ func loadConfig() (*config, error) {
 		return nil, err
 	}
 
+	err = c.validate()
+	if err != nil {
+		return nil, err
+	}
+
 	return &c, err
 }
 
@@ -65,10 +70,7 @@ func loadConfig() (*config, error) {
 // credentials.
 func TestCreateVaultCredentialStoreCli(t *testing.T) {
 	e2e.MaybeSkipTest(t)
-
 	c, err := loadConfig()
-	require.NoError(t, err)
-	err = c.validate()
 	require.NoError(t, err)
 
 	// Configure vault
@@ -267,10 +269,7 @@ func TestCreateVaultCredentialStoreCli(t *testing.T) {
 // a set of credentials in vault that is attached to a target.
 func TestCreateVaultCredentialStoreApi(t *testing.T) {
 	e2e.MaybeSkipTest(t)
-
 	c, err := loadConfig()
-	require.NoError(t, err)
-	err = c.validate()
 	require.NoError(t, err)
 
 	// Configure vault
@@ -394,14 +393,15 @@ func TestCreateVaultCredentialStoreApi(t *testing.T) {
 	newSessionAuthorizationResult, err := tClient.AuthorizeSession(ctx, newTargetId)
 	require.NoError(t, err)
 	newSessionAuthorization := newSessionAuthorizationResult.Item
-	retrievedUser := fmt.Sprintf("%s", newSessionAuthorization.Credentials[0].Credential["username"])
-	retrievedKey := fmt.Sprintf("%s", newSessionAuthorization.Credentials[0].Credential["private_key"])
+	retrievedUser, ok := newSessionAuthorization.Credentials[0].Credential["username"].(string)
+	require.True(t, ok)
 	assert.Equal(t, c.TargetSshUser, retrievedUser)
 
+	retrievedKey, ok := newSessionAuthorization.Credentials[0].Credential["private_key"].(string)
+	require.True(t, ok)
 	k, err := os.ReadFile(c.TargetSshKeyPath)
 	require.NoError(t, err)
-
 	keysMatch := string(k) == retrievedKey // This is done to prevent printing out key info
-	require.True(t, keysMatch, "Key contents retrieved from vault does not match expected value")
+	require.True(t, keysMatch, "Key retrieved from vault does not match expected value")
 	t.Log("Successfully retrieved credentials for target")
 }

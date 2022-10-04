@@ -69,4 +69,9 @@ go test github.com/hashicorp/boundary/testing/e2e/target -v -run '^TestCreateTar
 
 ## Adding Tests
 
-Enos is comprised of scenarios, where a scenario is. In one scenario, there may be a boundary cluster and a target. Another scenario might involve a boundary cluster and a vault instance.
+Tests live under this directory. Additional tests can be added to an existing go package or a new one can be
+created. If a new package is created, a new enos scenario would also need to be created.
+
+Enos is comprised of scenarios, where a scenario is the environment you want the tests to operate in. In one
+scenario, there may be a boundary cluster and a target. Another scenario might involve a boundary cluster and
+a vault instance. Scenarios can be found in [boundary/enos](../../../enos/)

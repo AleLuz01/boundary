@@ -49,6 +49,11 @@ func loadConfig() (*config, error) {
 		return nil, err
 	}
 
+	err = c.validate()
+	if err != nil {
+		return nil, err
+	}
+
 	return &c, err
 }
 
@@ -57,10 +62,7 @@ func loadConfig() (*config, error) {
 // the connection was successful.
 func TestConnectTargetCli(t *testing.T) {
 	e2e.MaybeSkipTest(t)
-
 	c, err := loadConfig()
-	require.NoError(t, err)
-	err = c.validate()
 	require.NoError(t, err)
 
 	boundary.AuthenticateCli(t)
@@ -178,10 +180,7 @@ func TestConnectTargetCli(t *testing.T) {
 // when not using the cli.
 func TestCreateTargetApi(t *testing.T) {
 	e2e.MaybeSkipTest(t)
-
 	c, err := loadConfig()
-	require.NoError(t, err)
-	err = c.validate()
 	require.NoError(t, err)
 
 	// Create boundary api client
